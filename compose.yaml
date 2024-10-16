@@ -1,12 +1,12 @@
 services:
   roscore:
     image: system_base:ros_noetic_source
-    command: roscore
+    command: /bin/bash -c "source /opt/ros/noetic/setup.bash && roscore"
     network_mode: host
 
   rviz:
     image: system_base:ros_noetic_source
-    command: rviz
+    command: /bin/bash -c "source /opt/ros/noetic/setup.bash && rviz"
     depends_on:
       - roscore
     runtime: nvidia
@@ -16,7 +16,6 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - QT_X11_NO_MITSHM=1
-    user: ${UID}
     volumes:
       - ${HOME}/.Xauthority:/root/.Xauthority:rw
       - /tmp/.X11-unix:/tmp/.X11-unix
@@ -27,13 +26,26 @@ services:
       - /etc/sudoers.d:/etc/sudoers.d:ro
       - /home/${USER}:/home/${USER}:rw #share your home with write permissions
     network_mode: host
-
+  
   # rosbash:
   #   image: system_base:ros_noetic_source
   #   container_name: rosbash
   #   command: bash
-  #   stdin_open: true
-  #   tty: true
   #   depends_on:
   #     - roscore
+  #   network_mode: host
   #   environment:
+  #     - "ROS_MASTER_URI=http://localhost:11311"
+  #   stdin_open: true
+  #   tty: true
+
+  ouster_lidar:
+    image: ubuntu20-ros-noetic:ouster
+    command: /bin/bash -c "while true; do sleep 1000; done"
+    depends_on:
+      - roscore
+    environment:
+      - "ROS_MASTER_URI=http://localhost:11311"
+    volumes:
+      - ~/ros_noetic_docker_home/ouster_ws:/ouster_ws:rw
+    network_mode: host
