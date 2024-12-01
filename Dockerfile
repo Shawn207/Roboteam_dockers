@@ -1,41 +1,66 @@
 # Use Ubuntu 20.04 as the base image
 FROM ubuntu:20.04
 
-# Set non-interactive mode for installation
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
 
-# Update and install essential tools and libraries
+# Update and install essential tools
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-dev \
-    build-essential \
-    curl \
-    libssl-dev \
-    libffi-dev \
     locales \
+    curl \
+    gnupg2 \
+    lsb-release \
+    build-essential \
+    && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure system locale
-RUN locale-gen en_US.UTF-8
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US:en
-ENV LC_ALL=en_US.UTF-8
+# Setup sources for ROS Noetic
+RUN curl -sSL http://packages.ros.org/ros.key | apt-key add - \
+    && sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros-latest.list'
 
-# Copy the Spot SDK file to the container
-COPY spot-sdk-4.0.3.tar.gz /spot-sdk/
+# Install ROS Noetic Desktop Full and other necessary packages
+RUN apt-get update && apt-get install -y \
+    ros-noetic-desktop-full \
+    ros-noetic-catkin \
+    python3-rosdep \
+    python3-rosinstall \
+    python3-rosinstall-generator \
+    python3-wstool \
+    python3-catkin-tools \
+    ros-noetic-vision-msgs \
+    python3-pip \
+    git \
+    libssl-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Extract the SDK file
-RUN tar -xzf /spot-sdk/spot-sdk-4.0.3.tar.gz -C /spot-sdk/ \
-    && rm /spot-sdk/spot-sdk-4.0.3.tar.gz
+# Initialize rosdep
+RUN rosdep init && rosdep update
 
-# Set the working directory to the Spot SDK directory
-WORKDIR /spot-sdk/spot-sdk-4.0.3
+# Set up environment
+SHELL ["/bin/bash", "-c"]
+ENV ROS_PACKAGE_PATH=/opt/ros/noetic/share
+ENV PATH=$PATH:/opt/ros/noetic/bin
+RUN echo "export BOSDYN_CLIENT_USERNAME=user" >> ~/.bashrc \
+    && echo "export BOSDYN_CLIENT_PASSWORD=scgau6g5w987" >> ~/.bashrc \
+    && echo "export SPOT_HOSTNAME=\"192.168.80.3\"" >> ~/.bashrc \
+    && echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 
-# Install Python dependencies required for the Spot SDK
-RUN pip3 install --upgrade pip setuptools wheel \
-    && pip3 install -r python/requirements.txt
+# Set working directory and copy workspace
+WORKDIR /root/spot_ws
+COPY ./spot_ws /root/spot_ws
 
-# Set the default command to open an interactive shell
-CMD ["bash"]
+# Clean any existing build or devel directories
+RUN rm -rf /root/spot_ws/build /root/spot_ws/devel
 
+# Build workspace
+WORKDIR /root/spot_ws
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir -r /root/spot_ws/src/spot/src/spot/requirements.txt
+
+# Set default command
+CMD ["/bin/bash"]
