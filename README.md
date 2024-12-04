@@ -12,6 +12,10 @@ xhost + # enalbe X11 forwarding
 sudo docker compose up
 
 ```
+run spot docker:
+```
+docker run -it     --network=host     --privileged     -e DISPLAY=$DISPLAY     -v /tmp/.X11-unix:/tmp/.X11-unix     -v /home/cerlab/ros_noetic_docker_home/ouster_ws/src:/root/spot_ws/src spot_image
+```
 
 if you want to stop:
 ```
