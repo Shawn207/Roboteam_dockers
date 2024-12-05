@@ -24,4 +24,4 @@ sudo docker compose down
 ```
 
 #Issues:
-1. rviz cannot contact to master: I tried do a healthcheck on roscore service and set rviz depends on roscore health check. That hangs. Then I cancled it and redo, rviz works.
+1. spot_image:latest works fine with Wifi, still need to test with Ethernet.
