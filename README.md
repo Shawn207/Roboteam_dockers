@@ -24,4 +24,4 @@ sudo docker compose down
 ```
 
 #Issues:
-1. spot_image:latest works fine with Wifi, still need to test with Ethernet.
+1. spot_image:both wifi and ethernet is woking. and compose of spot is done, but still need to write a shell for running estop_nogui.py in a new terminal.
