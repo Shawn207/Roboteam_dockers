@@ -4,29 +4,38 @@ services:
     command: /bin/bash -c "source /opt/ros/noetic/setup.bash && roscore"
     network_mode: host
 
-  rviz:
-    image: system_base:ros_noetic_source
-    command: /bin/bash -c "source /opt/ros/noetic/setup.bash && rviz"
-    depends_on:
-      - roscore
-    runtime: nvidia
-    environment:
-      - DISPLAY=${DISPLAY}
-      - "ROS_MASTER_URI=http://localhost:11311"
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - QT_X11_NO_MITSHM=1
-    volumes:
-      - ${HOME}/.Xauthority:/root/.Xauthority:rw
-      - /tmp/.X11-unix:/tmp/.X11-unix
-      - /etc/group:/etc/group:ro
-      - /etc/passwd:/etc/passwd:ro
-      - /etc/shadow:/etc/shadow:ro
-      - /etc/sudoers:/etc/sudoers:ro
-      - /etc/sudoers.d:/etc/sudoers.d:ro
-      - /home/${USER}:/home/${USER}:rw #share your home with write permissions
-    network_mode: host
-  
+  # rviz:
+  #   image: system_base:ros_noetic_source
+  #   command: /bin/bash -c "mkdir -p /tmp/runtime-root && chmod 0700 /tmp/runtime-root && source /opt/ros/noetic/setup.bash && rviz"
+    
+  #   depends_on:
+  #     - roscore
+  #   runtime: nvidia
+  #   environment:
+  #     - DISPLAY=${DISPLAY}
+  #     - XDG_RUNTIME_DIR=/tmp/runtime-root
+  #     - "ROS_MASTER_URI=http://localhost:11311"
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #     - NVIDIA_DRIVER_CAPABILITIES=all
+  #     - QT_X11_NO_MITSHM=1
+  #   volumes:
+  #     - ${HOME}/.Xauthority:/root/.Xauthority:rw
+  #     - /tmp/.X11-unix:/tmp/.X11-unix
+  #     - /etc/group:/etc/group:ro
+  #     - /etc/passwd:/etc/passwd:ro
+  #     - /etc/shadow:/etc/shadow:ro
+  #     - /etc/sudoers:/etc/sudoers:ro
+  #     - /etc/sudoers.d:/etc/sudoers.d:ro
+  #     - /home/${USER}:/home/${USER}:rw #share your home with write permissions
+  #   network_mode: host
+  #   devices:
+  #     - /dev/dri/card1:/dev/dri/card0
+  #     - /dev/nvidia0:/dev/nvidia0
+  #     - /dev/nvidiactl:/dev/nvidiactl
+  #     - /dev/nvidia-uvm:/dev/nvidia-uvm
+
+
+
   # rosbash:
   #   image: system_base:ros_noetic_source
   #   container_name: rosbash
@@ -41,7 +50,7 @@ services:
 
   ouster_lidar:
     image: ubuntu20-ros-noetic:ouster
-    command: /bin/bash -c "while true; do sleep 1000; done"
+    command: /bin/bash -c "source /opt/ros/noetic/setup.bash && sudo apt-get update && sudo apt-get install ros-noetic-vision-msgs && cd /ouster_ws && catkin_make && source devel/setup.bash && curl -4 -I http://169.254.31.25/api/v1/sensor/metadata/lidar_intrinsics && roslaunch ouster_ros driver.launch sensor_hostname:=169.254.31.25 lidar_mode:=1024x10 timestamp_mode:=TIME_FROM_ROS_TIME lidar_port:=7502 imu_port:=7503"
     depends_on:
       - roscore
     environment:
@@ -51,3 +60,48 @@ services:
     network_mode: host
     extra_hosts:
       - "os-122412000058.local:169.254.185.8"  # IPv4 address of the Lidar: This is necessary for ping the ouster hostname
+    devices:
+      - /dev/dri/card1:/dev/dri/card0
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+    ports:
+      - "7502:7502/udp"
+      - "7503:7503/udp"
+
+  fast_lio:
+    image: ros_noetic_fastlio2:latest
+    # command: tail -f /dev/null
+    command: /bin/bash -c "source /opt/ros/noetic/setup.bash && cd ~/catkin_ws && catkin_make && source devel/setup.bash &&  roslaunch fast_lio mapping_ouster64.launch rviz:=true" 
+    
+    depends_on:
+      - roscore
+      # - ouster_lidar
+    environment:
+      - "ROS_MASTER_URI=http://localhost:11311"
+      - DISPLAY=${DISPLAY}
+      - XDG_RUNTIME_DIR=/tmp/runtime-root
+      - "ROS_MASTER_URI=http://localhost:11311"
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - /home/cerlab/ros_noetic_docker_home/docker_ws
+    network_mode: host
+    devices:
+      - /dev/dri/card1:/dev/dri/card0
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+    privileged: true
+
+
+
+
+
+
+# docker compose exec fast_lio /bin/bash
+# cd ~/catkin_ws
+# catkin_make
+# source devel/setup.bash
+# roslaunch fast_lio mapping_ouster64.launch
