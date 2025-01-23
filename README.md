@@ -1,6 +1,12 @@
 # Roboteam Dockers for SPOT
 run ros1 on ubuntu 22
 
+Instruction
+Close the ufw(Uncomplicated Firewall)
+```
+sudo ufw disable
+```
+
 build base docker image:
 ```
 #docker build -t your_image_name:tag .
@@ -24,5 +30,4 @@ if you want to stop:
 sudo docker compose down
 ```
 
-#Issues:
-1. spot_image:both wifi and ethernet is woking. and compose of spot is done, but still need to write a shell for running estop_nogui.py in a new terminal.
+# Issues:
