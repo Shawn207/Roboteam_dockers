@@ -1,7 +1,8 @@
 # Roboteam Dockers for SPOT
 run ros1 on ubuntu 22
 
-Instruction
+Instruction:
+
 Close the ufw(Uncomplicated Firewall)
 ```
 sudo ufw disable
