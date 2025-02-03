@@ -22,7 +22,7 @@ sudo docker compose up
 
 Re-enter the spot image
 ```
-docker exec -it spot_image bash
+docker exec -it container_name bash
 ```
 
 
