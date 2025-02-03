@@ -10,7 +10,7 @@ sudo ufw disable
 
 build base docker image:
 ```
-#docker build -t your_image_name:tag .
+#docker build -f dockerfile_name -t your_image_name:tag .
 ```
 
 docker compose:
