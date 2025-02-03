@@ -20,7 +20,7 @@ sudo docker compose up
 
 ```
 
-Re-enter the spot image
+Re-enter the container
 ```
 docker exec -it container_name bash
 ```
