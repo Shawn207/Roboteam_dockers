@@ -31,4 +31,9 @@ if you want to stop:
 sudo docker compose down
 ```
 
+Send file form docker to local
+```
+docekr cp <container_name>:/<file_dir> <local_dir>
+```
+
 ## Issues:
