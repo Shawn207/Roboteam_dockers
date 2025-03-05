@@ -1,0 +1,55 @@
+# use the ros noetic as the base image
+FROM osrf/ros:noetic-desktop-full
+
+# set up environment
+ENV DEBIAN_FRONTEND=noninteractive
+
+# install necessary packages
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python3-pip \
+    python3-catkin-tools \
+    libopencv-dev \
+    libeigen3-dev \
+    libpcl-dev \
+    ros-noetic-octomap* \
+    ros-noetic-cv-bridge \
+    ros-noetic-vision-msgs \
+    ros-noetic-image-transport \
+    ros-noetic-message-filters \
+    python3-rosdep \
+    nlohmann-json3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root
+
+# install the OsqpEigen (0.6.2)
+RUN cd /root && \
+    git clone -b v0.6.2 --recursive https://github.com/osqp/osqp && \
+    cd osqp && \
+    mkdir build && cd build && \
+    cmake -G "Unix Makefiles" .. && \
+    cmake --build . && \
+    cmake --build . --target install
+
+# install osqp-eigen
+RUN cd /root && \
+    git clone -b v0.7.0 https://github.com/robotology/osqp-eigen.git && \
+    cd osqp-eigen && \
+    mkdir build && cd build && \
+    cmake .. && \
+    make && \
+    make install
+
+# Create a symbolic link for Eigen
+RUN ln -s /usr/include/eigen3/Eigen /usr/include/Eigen
+
+# create workspace
+RUN mkdir -p /root/planner_ws/src
+
+# set up the ros environment
+RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+
+CMD ["bash"]
