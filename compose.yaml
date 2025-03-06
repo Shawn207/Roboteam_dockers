@@ -10,16 +10,15 @@ services:
     network_mode: host
     stdin_open: true
     tty: true
-    
+
   # spot_image:
   #   image: spot_image_test:latest
   #   container_name: spot_image_test
-  #   command: /bin/bash -c "python3 /root/spot_ws/src/spot/src/spot/estop_nogui.py"
-  #   # command: /bin/bash -c "
-  #   #       source /opt/ros/noetic/setup.bash &&
-  #   #       export RUN_ID=$ROS_RUN_ID &&
-  #   #       source /root/spot_ws/devel/setup.bash && 
-  #   #       python3 /root/spot_ws/src/spot/scripts/yolov8_ros.py"
+  #   # command: /bin/bash -c "python3 /root/spot_ws/src/spot/src/spot/estop_nogui.py"
+  #   command: /bin/bash -c "
+  #         source /opt/ros/noetic/setup.bash &&
+  #         export RUN_ID=$ROS_RUN_ID &&
+  #         python3 /root/spot_ws/src/spot/src/spot/estop_nogui.py"
   #   runtime: nvidia
   #   depends_on:
   #     - roscore
@@ -43,7 +42,7 @@ services:
   #     - ROS_RUN_ID=12345678-1234-1234-1234-123456789abc
   #   volumes:
   #     - /tmp/.X11-unix:/tmp/.X11-unix
-  #     - /home/cerlab/ros_noetic_docker_spot/spot_ws/src:/root/spot_ws/src
+  #     - /home/cerlab/ros_noetic_docker_spot/spot_ws/src:/root/spot_ws/src:rw
   #   devices:
   #     - "/dev/bus/usb:/dev/bus/usb"
   #   network_mode: host
@@ -58,6 +57,7 @@ services:
       - roscore
     volumes:
       - /home/cerlab/ros_noetic_docker_spot/planner_ws/:/root/planner_ws/:rw
+      - /home/cerlab/.ros/log/latest:/root/.ros/log/latest
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: /bin/bash -c "
         source /opt/ros/noetic/setup.bash &&
@@ -78,7 +78,6 @@ services:
     tty: true
     privileged: true
     
-  
   ouster_lidar:
       image: ubuntu20-ros-noetic:ouster
       command: /bin/bash -c "source /opt/ros/noetic/setup.bash && sudo apt-get update && sudo apt-get install ros-noetic-vision-msgs && cd /ouster_ws && catkin_make && source devel/setup.bash && curl -4 -I http://169.254.31.25/api/v1/sensor/metadata/lidar_intrinsics && roslaunch ouster_ros driver.launch sensor_hostname:=169.254.31.25 lidar_mode:=1024x10 timestamp_mode:=TIME_FROM_ROS_TIME lidar_port:=7502 imu_port:=7503"
@@ -134,7 +133,7 @@ services:
   #     - /dev/nvidia0:/dev/nvidia0
   #     - /dev/nvidiactl:/dev/nvidiactl
   #     - /dev/nvidia-uvm:/dev/nvidia-uvm
-  
+
   li_init:
     image: li_init:latest
     container_name: li_init
@@ -145,8 +144,7 @@ services:
           catkin_make && 
           source devel/setup.bash && 
           export RUN_ID=$ROS_RUN_ID &&
-          roslaunch lidar_imu_init ouster.launch"
-          #roslaunch lidar_imu_init ouster.launch rviz:=true"    
+          roslaunch lidar_imu_init ouster.launch"  
     runtime: nvidia
     depends_on:
       - roscore
@@ -169,12 +167,10 @@ services:
     image: spot_sam2_finalv0:latest
     container_name: spot_image_test_sam
     command: /bin/bash -c "python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
-    # command: /bin/bash -c "source /opt/ros/noetic/setup.bash && tail -f /dev/null"
     # command: /bin/bash -c "
     #       source /opt/ros/noetic/setup.bash &&
     #       export RUN_ID=$ROS_RUN_ID &&
-    #       source /root/spot_ws/devel/setup.bash && 
-    #       python3 /root/spot_ws/src/spot/scripts/yolov8_ros.py"
+    #       python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
     runtime: nvidia
     depends_on:
       - roscore
@@ -200,7 +196,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /home/cerlab/bags:/opt/bags:rw
-      - /home/cerlab/ros_noetic_docker_spot/spot_ws/src:/home/user/spot_ws/src
+      - /home/cerlab/ros_noetic_docker_spot/spot_ws/src:/home/user/spot_ws/src:rw
       - /home/${USER}/repos:/home/${USER}/repos
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
