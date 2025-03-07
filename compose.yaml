@@ -57,7 +57,7 @@ services:
       - roscore
     volumes:
       - /home/cerlab/ros_noetic_docker_spot/planner_ws/:/root/planner_ws/:rw
-      - /home/cerlab/.ros/log/latest:/root/.ros/log/latest
+      - /home/cerlab/.ros/log/:/root/.ros/log/:rw
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: /bin/bash -c "
         source /opt/ros/noetic/setup.bash &&
@@ -166,11 +166,11 @@ services:
   spot_image_sam:
     image: spot_sam2_finalv0:latest
     container_name: spot_image_test_sam
-    command: /bin/bash -c "python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
-    # command: /bin/bash -c "
-    #       source /opt/ros/noetic/setup.bash &&
-    #       export RUN_ID=$ROS_RUN_ID &&
-    #       python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
+    # command: /bin/bash -c "python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
+    command: /bin/bash -c "
+          source /opt/ros/noetic/setup.bash &&
+          export RUN_ID=$ROS_RUN_ID &&
+          python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
     runtime: nvidia
     depends_on:
       - roscore
