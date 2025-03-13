@@ -1,0 +1,90 @@
+# Use Ubuntu 20.04 as the base image
+FROM ubuntu:20.04
+
+# Set non-interactive mode for installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update and install essential tools
+RUN apt-get update && apt-get install -y \
+    locales \
+    curl \
+    gnupg2 \
+    lsb-release \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# install ouster driver dependencies
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    build-essential \
+    libeigen3-dev \
+    libjsoncpp-dev \
+    libspdlog-dev \
+    libcurl4-openssl-dev \
+    cmake
+
+# install: ping, ifconfig
+
+# Set locale
+RUN locale-gen en_US en_US.UTF-8
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+
+# Setup sources for ROS Noetic
+RUN curl -sSL 'http://repo.ros2.org/repos.key' | apt-key add - \
+    && sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros-latest.list'
+
+# Install ROS Noetic Desktop Full
+RUN apt-get update && apt-get install -y \
+    ros-noetic-desktop-full \
+    python3-rosdep \
+    python3-rosinstall \
+    python3-rosinstall-generator \
+    python3-wstool \
+    python3-rosdep \
+    && rm -rf /var/lib/apt/lists/*
+
+# Initialize rosdep
+RUN rosdep init && rosdep update
+
+# Set up environment
+SHELL ["/bin/bash", "-c"]
+RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+
+# Install PCL & Eigen & essential libraries
+RUN apt-get update && apt-get install -y cmake libeigen3-dev libpcl-dev \
+    ros-noetic-rviz ros-noetic-pcl-ros ros-noetic-eigen-conversions \
+    libatlas-base-dev libgoogle-glog-dev libsuitesparse-dev libglew-dev wget
+
+# Install matplotlib
+RUN apt-get update && apt-get install -y python3-pip python3-tk && pip3 install matplotlib
+
+# Install ceres-solver
+WORKDIR /root
+RUN wget https://github.com/ceres-solver/ceres-solver/archive/refs/tags/2.0.0.tar.gz
+RUN tar zxf 2.0.0.tar.gz
+RUN cd ceres-solver-2.0.0
+RUN mkdir build && cd build
+RUN ls
+RUN cmake -DCMAKE_BUILD_TYPE=Release ./ceres-solver-2.0.0 && make -j2 && make install
+
+# Install livox driver
+WORKDIR /root/livox_ws/src
+RUN wget https://github.com/Livox-SDK/livox_ros_driver/archive/refs/tags/v2.6.0.tar.gz
+RUN tar zxf v2.6.0.tar.gz && rm -rf v2.6.0.tar.gz
+WORKDIR /root/livox_ws/
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+RUN echo "source /root/livox_ws/devel/setup.bash" >> ~/.bashrc
+
+# Create the workspace for LiDAR_IMU_Init https://github.com/YvonneoO/LiDAR_IMU_Init.git
+# and ouster-ros driver https://github.com/ouster-lidar/ouster-ros.git
+RUN mkdir -p /root/catkin_ws/src
+
+# Set working directory to the workspace
+WORKDIR /root/catkin_ws
+
+# Build the workspace (optional)
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+
+# Default command for the container (open bash in interactive mode)
+CMD ["bash"]

@@ -3,9 +3,7 @@ FROM nvidia/cuda:12.2.0-devel-ubuntu20.04
 
 # Set up environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="${PATH}:/home/user/.local/bin"
-
-# We love UTF!
+ENV PATH="${PATH}:/root/.local/bin"
 ENV LANG C.UTF-8
 
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
@@ -17,17 +15,14 @@ ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 ENV CUDA_HOME="/usr/local/cuda"
 ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6+PTX 8.9"
 
-# Install some handy tools. Even Guvcview for webcam support!
+# Install some handy tools.
 RUN set -x \
 	&& apt-get update \
 	&& apt-get install -y apt-transport-https ca-certificates \
 	&& apt-get install -y git vim tmux nano htop sudo curl wget gnupg2 \
 	&& apt-get install -y bash-completion \
 	&& apt-get install -y guvcview \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& useradd -ms /bin/bash user \
-	&& echo "user:user" | chpasswd && adduser user sudo \
-	&& echo "user ALL=(ALL) NOPASSWD: ALL " >> /etc/sudoers
+	&& rm -rf /var/lib/apt/lists/*
 
 RUN set -x \
     && apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
@@ -40,25 +35,27 @@ RUN set -x \
     && apt-get install -y python3.11 python3.11-venv python3.11-dev \
     && apt-get install -y python3.11-tk
 
+# Set python3.8 with higher priority
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
 
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
 
-WORKDIR /home/user
+WORKDIR /root
 
-
+# Install segment-anything-2
 RUN git clone https://github.com/facebookresearch/segment-anything-2 && \
     cd segment-anything-2 && \
     python3.11 -m pip install -e . -v && \
-    python3.11   -m pip install -e ".[demo]" && \
+    python3.11 -m pip install -e ".[demo]" && \
     cd checkpoints && ./download_ckpts.sh && cd ..
 
 RUN apt-get update \
- && apt-get install -y locales lsb-release
+    && apt-get install -y locales lsb-release
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dpkg-reconfigure locales
- 
+
+# Set up sources for ROS Noetic and Install ROS Noetic Desktop Full
 RUN set -x \
     && sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' \
     && apt install -y curl \
@@ -76,9 +73,6 @@ RUN set -x \
     && apt install -y libgirepository1.0-dev \
     && apt remove -y python3-pycryptodome
 
-RUN usermod -aG dialout user
-USER user
-
 RUN rosdep update
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 RUN sudo apt-get install -y python3-pip
@@ -86,14 +80,32 @@ RUN python3 -m pip install PyGObject --force-reinstall
 RUN pip3 install pycryptodome
 RUN sudo apt install -y ros-noetic-desktop-full
 
+# Set up the python path for segment-anything-2
+RUN sudo echo "export PYTHONPATH="${PYTHONPATH}://root/segment-anything-2"" >> ~/.bashrc
 
-
-RUN sudo echo "export PYTHONPATH="${PYTHONPATH}:/home/user/segment-anything-2"" >> ~/.bashrc
 RUN python3 -m pip install av && python3 -m pip install pynput
 RUN python3.8 -m pip install --upgrade pip
-RUN python3.8 -m pip install open3d==0.18.0
+
+# Install the Spot Package
+ENV ROS_PACKAGE_PATH=/opt/ros/noetic/share
+ENV PATH=$PATH:/opt/ros/noetic/bin
+RUN mkdir -p /root/spot_ws/src
+COPY /spot_ws/src /root/spot_ws/src/
+
+WORKDIR /root/spot_ws
+RUN python3.8 -m pip install --no-cache-dir -r /root/spot_ws/src/spot/src/spot/requirements.txt
+
+RUN . /opt/ros/noetic/setup.sh \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && catkin_make clean \
+    && catkin_make
+
+# Source the workspace setup in bashrc
+RUN echo "source /root/spot_ws/devel/setup.bash" >> ~/.bashrc
+
+# Install required Python packages
+RUN python3 -m pip install --no-cache-dir antlr4-python3-runtime==4.9.3 hydra-core==1.3.2 iopath==0.1.10 omegaconf==2.3.0 portalocker==3.0.0
 
 STOPSIGNAL SIGTERM
 
-
-CMD sudo service ssh start && /bin/bash
+CMD ["/bin/bash"]
