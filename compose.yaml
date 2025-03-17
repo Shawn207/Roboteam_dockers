@@ -3,52 +3,13 @@ services:
     image: system_base:ros_noetic_source
     environment:
       - ROS_MASTER_URI=http://localhost:11311
-      - ROS_IP=192.168.1.13
+      - ROS_IP=192.168.1.12
       - ROS_RUN_ID=12345678-1234-1234-1234-123456789abc
     command: /bin/bash -c "source /opt/ros/noetic/setup.bash && export RUN_ID=$ROS_RUN_ID && roscore"
 
     network_mode: host
     stdin_open: true
     tty: true
-
-  # spot_image:
-  #   image: spot_image_test:latest
-  #   container_name: spot_image_test
-  #   # command: /bin/bash -c "python3 /root/spot_ws/src/spot/src/spot/estop_nogui.py"
-  #   command: /bin/bash -c "
-  #         source /opt/ros/noetic/setup.bash &&
-  #         export RUN_ID=$ROS_RUN_ID &&
-  #         python3 /root/spot_ws/src/spot/src/spot/estop_nogui.py"
-  #   runtime: nvidia
-  #   depends_on:
-  #     - roscore
-  #   environment:
-  #     # ROS Multi-Machines
-  #     # - ROS_MASTER_URI=http://192.168.1.12:11311
-  #     # - ROS_IP=192.168.1.13
-  #     # run without master computer
-  #     - ROS_MASTER_URI=http://localhost:11311
-  #     - ROS_IP=192.168.1.13
-  #     - DISPLAY=${DISPLAY}
-  #     - XDG_RUNTIME_DIR=/tmp/runtime-root
-  #     - NVIDIA_VISIBLE_DEVICES=all
-  #     - NVIDIA_DRIVER_CAPABILITIES=all
-  #     - QT_X11_NO_MITSHM=1
-  #     - BOSDYN_CLIENT_USERNAME=user
-  #     - BOSDYN_CLIENT_PASSWORD=scgau6g5w987
-  #     # - SPOT_HOSTNAME=192.168.80.3
-  #     - SPOT_HOSTNAME=10.0.0.3
-  #     - TERM=xterm
-  #     - ROS_RUN_ID=12345678-1234-1234-1234-123456789abc
-  #   volumes:
-  #     - /tmp/.X11-unix:/tmp/.X11-unix
-  #     - /home/cerlab/ros_noetic_docker_spot/spot_ws/src:/root/spot_ws/src:rw
-  #   devices:
-  #     - "/dev/bus/usb:/dev/bus/usb"
-  #   network_mode: host
-  #   privileged: true
-  #   stdin_open: true
-  #   tty: true
 
   planner:
     image: ros_noetic_planner:latest
@@ -58,6 +19,7 @@ services:
     volumes:
       - /home/cerlab/ros_noetic_docker_spot/planner_ws/:/root/planner_ws/:rw
       - /home/cerlab/.ros/log/:/root/.ros/log/:rw
+      - /home/cerlab/bags:/root/bags:rw
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     command: /bin/bash -c "
         source /opt/ros/noetic/setup.bash &&
@@ -69,7 +31,7 @@ services:
     environment:
       - ROS_RUN_ID=12345678-1234-1234-1234-123456789abc
       - ROS_MASTER_URI=http://localhost:11311
-      - ROS_IP=192.168.1.13
+      - ROS_IP=192.168.1.12
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
       - NVIDIA_DRIVER_CAPABILITIES=all
@@ -79,17 +41,25 @@ services:
     privileged: true
     
   ouster_lidar:
-      image: ubuntu20-ros-noetic:ouster
-      command: /bin/bash -c "source /opt/ros/noetic/setup.bash && sudo apt-get update && sudo apt-get install ros-noetic-vision-msgs && cd /ouster_ws && catkin_make && source devel/setup.bash && curl -4 -I http://169.254.31.25/api/v1/sensor/metadata/lidar_intrinsics && roslaunch ouster_ros driver.launch sensor_hostname:=169.254.31.25 lidar_mode:=1024x10 timestamp_mode:=TIME_FROM_ROS_TIME lidar_port:=7502 imu_port:=7503"
+      image: qqyang/ros_noetic_ouster_li_init:latest
+      container_name: ouster_lio
+      command: /bin/bash -c "source /opt/ros/noetic/setup.bash && 
+              sudo apt-get update && sudo apt-get install ros-noetic-vision-msgs && 
+              source /root/livox_ws/devel/setup.bash &&
+              cd /root/catkin_ws && catkin_make -DCMAKE_BUILD_TYPE=Release && export RUN_ID=$ROS_RUN_ID &&
+              source devel/setup.bash && 
+              curl -4 -I http://169.254.31.25/api/v1/sensor/metadata/lidar_intrinsics && 
+              roslaunch ouster_ros driver.launch sensor_hostname:=169.254.31.25 lidar_mode:=1024x10 timestamp_mode:=TIME_FROM_ROS_TIME lidar_port:=7502 imu_port:=7503"
       depends_on:
         - roscore
       environment:
         - ROS_MASTER_URI=http://localhost:11311
         # - ROS_IP=172.17.0.1
         # - ROS_MASTER_URI=http://192.168.1.12:11311
-        - ROS_IP=192.168.1.13
+        - ROS_IP=192.168.1.12
+        - ROS_RUN_ID=12345678-1234-1234-1234-123456789abc
       volumes:
-        - /home/cerlab/ros_noetic_docker_home/ouster_ws:/ouster_ws:rw
+        - /home/cerlab/ros_noetic_docker_spot/ouster_ws/:/root/catkin_ws/:rw
       network_mode: host
       extra_hosts:
         - "os-122412000058.local:169.254.31.25"  # IPv4 address of the Lidar: This is necessary for ping the ouster hostname
@@ -103,74 +73,15 @@ services:
         - "7503:7503/udp"
       stdin_open: true
       tty: true
-  
-  # rviz:
-  #   image: system_base:ros_noetic_source
-  #   command: /bin/bash -c "mkdir -p /tmp/runtime-root && chmod 0700 /tmp/runtime-root && source /opt/ros/noetic/setup.bash && rviz"
- 
-  #   depends_on:
-  #    - roscore
-  #   runtime: nvidia
-  #   environment:
-  #     - DISPLAY=${DISPLAY}
-  #     - XDG_RUNTIME_DIR=/tmp/runtime-root
-  #     - "ROS_MASTER_URI=http://localhost:11311"
-  #     - NVIDIA_VISIBLE_DEVICES=all
-  #     - NVIDIA_DRIVER_CAPABILITIES=all
-  #     - QT_X11_NO_MITSHM=1
-  #   volumes:
-  #     - ${HOME}/.Xauthority:/root/.Xauthority:rw
-  #     - /tmp/.X11-unix:/tmp/.X11-unix
-  #     - /etc/group:/etc/group:ro
-  #     - /etc/passwd:/etc/passwd:ro
-  #     - /etc/shadow:/etc/shadow:ro
-  #     - /etc/sudoers:/etc/sudoers:ro
-  #     - /etc/sudoers.d:/etc/sudoers.d:ro
-  #     - /home/${USER}:/home/${USER}:rw #share your home with write permissions
-  #   network_mode: host
-  #   devices:
-  #     - /dev/dri/card1:/dev/dri/card0
-  #     - /dev/nvidia0:/dev/nvidia0
-  #     - /dev/nvidiactl:/dev/nvidiactl
-  #     - /dev/nvidia-uvm:/dev/nvidia-uvm
-
-  li_init:
-    image: li_init:latest
-    container_name: li_init
-    command: /bin/bash -c "
-          source /opt/ros/noetic/setup.bash && 
-          source /root/livox_ws/devel/setup.bash && 
-          cd ~/li_init_ws && 
-          catkin_make && 
-          source devel/setup.bash && 
-          export RUN_ID=$ROS_RUN_ID &&
-          roslaunch lidar_imu_init ouster.launch"  
-    runtime: nvidia
-    depends_on:
-      - roscore
-    environment:
-      - ROS_MASTER_URI=http://localhost:11311
-      - ROS_IP=192.168.1.13
-      - DISPLAY=${DISPLAY}
-      - XDG_RUNTIME_DIR=/tmp/runtime-root
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-      - QT_X11_NO_MITSHM=1
-      - ROS_RUN_ID=12345678-1234-1234-1234-123456789abc
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix
-      - /home/cerlab/ros_noetic_docker_spot/li_init_ws/:/root/li_init_ws/:rw
-    network_mode: host
-    privileged: true
 
   spot_image_sam:
-    image: spot_sam2_finalv0:latest
-    container_name: spot_image_test_sam
-    # command: /bin/bash -c "python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
+    image: qqyang/ros_noetic_spot_sam2:latest
+    container_name: spot_sam
     command: /bin/bash -c "
           source /opt/ros/noetic/setup.bash &&
           export RUN_ID=$ROS_RUN_ID &&
-          python3 /home/user/spot_ws/src/spot/src/spot/estop_nogui.py"
+          python3 /root/spot_ws/src/spot/src/spot/estop_nogui.py"
+          
     runtime: nvidia
     depends_on:
       - roscore
@@ -178,10 +89,10 @@ services:
     environment:
       # ROS Multi-Machines
       # - ROS_MASTER_URI=http://192.168.1.12:11311
-      # - ROS_IP=192.168.1.13
+      # - ROS_IP=192.168.1.12
       # run without master computer
       - ROS_MASTER_URI=http://localhost:11311
-      - ROS_IP=192.168.1.13
+      - ROS_IP=192.168.1.12
       - DISPLAY=${DISPLAY}
       - XDG_RUNTIME_DIR=/tmp/runtime-root
       - NVIDIA_VISIBLE_DEVICES=all
@@ -195,8 +106,7 @@ services:
       - ROS_RUN_ID=12345678-1234-1234-1234-123456789abc
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-      - /home/cerlab/bags:/opt/bags:rw
-      - /home/cerlab/ros_noetic_docker_spot/spot_ws/src:/home/user/spot_ws/src:rw
+      - /home/cerlab/ros_noetic_docker_spot/spot_ws/:/root/spot_ws/:rw
       - /home/${USER}/repos:/home/${USER}/repos
     devices:
       - "/dev/bus/usb:/dev/bus/usb"
@@ -210,4 +120,3 @@ services:
 # rosrun spot spot_base.py
 # rosbag record -O lidar.bag /spot/odom /ouster/points /ouster/imu /spot_image
 # docekr cp <container_name>:/<file_dir> <local_dir>
-# python3 -m pip install -r src/spot/src/spot/requirements.txt 
