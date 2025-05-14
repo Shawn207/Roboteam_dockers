@@ -114,9 +114,3 @@ services:
     privileged: true
     stdin_open: true
     tty: true
-
-# sudo docker compose up
-# docker exec -it <container_name> bash
-# rosrun spot spot_base.py
-# rosbag record -O lidar.bag /spot/odom /ouster/points /ouster/imu /spot_image
-# docekr cp <container_name>:/<file_dir> <local_dir>

@@ -2,6 +2,7 @@
 run ros1 on ubuntu 22
 
 ## Instruction:
+go to '''Roboteam_dockers/SPOT/'''
 
 For the multi machine, close the ufw(Uncomplicated Firewall)
 ```
@@ -10,7 +11,7 @@ sudo ufw disable
 
 build base docker image:
 ```
-#docker build -f dockerfile_name -t your_image_name:tag .
+docker build -f dockerfile_name -t your_image_name:tag .
 ```
 
 docker compose:
