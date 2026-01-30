@@ -20,18 +20,19 @@ build base docker image:
 docker build -f dockerfile_name -t your_image_name:tag .
 ```
 
-docker compose:
+Launch the containers by docker compose:
 ```
 xhost + # enalbe X11 forwarding
 sudo docker compose up
 
 ```
 
-Re-enter the container
+Re-enter the container in interactive mode
 ```
 docker exec -it container_name bash
 ```
 
+Select services combinations as you want in compose.yaml
 
 if you want to stop:
 ```
@@ -41,6 +42,40 @@ sudo docker compose down
 Send file form docker to local
 ```
 docker cp <container_name>:/<file_dir> <local_dir>
+```
+
+If you want to run vscode ros debug mode in planner service container:
+
+1. Make sure gdb is installed (latest version of Dockerfile.ros_noetic_planner).
+
+2. Use dev container extension to attach into the running planner container. Choose the folder as the top level of your ros workspace.
+
+3. Create appropriate launch.json. An example is here:
+```
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ROS 1: Launch File Debug",
+            "type": "ros",
+            "request": "launch",
+            "target": "/root/home/catkin_ws/src/autonomous_robot/launch/ma_exploration_heter.launch",
+            // Ensure the debugger path and mode are explicit so the project system
+            // can determine which debugger to use inside the container.
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            // If you're using Remote - Containers, the debugger must exist in the
+            // container at the path above. If you debug remotely with gdbserver,
+            // set up `miDebuggerServerAddress` accordingly.
+            // "miDebuggerServerAddress": "localhost:1234",
+            "cwd": "${workspaceFolder}"
+        }
+
+    ]
+}
 ```
 
 ## Issues:
